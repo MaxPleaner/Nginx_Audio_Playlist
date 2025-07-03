@@ -29,17 +29,22 @@ function init () {
         const doc = parser.parseFromString(html, 'text/html');
         const preText = doc.querySelector('pre')?.textContent.trim() || '';
     
-        const entries = preText
+        const monthMap = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
+
+        const musicEntries = [];
+        const otherEntries = [];
+        
+        preText
             .split('\n')
-            .filter(line => line.match(/\.(mp3|wav)\b/i))
-            .map(line => {
-                const match = line.match(/(\S+\.(?:mp3|wav))\s+(\d{2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2})/);
-                if (!match) return null;
+            .forEach(line => {
+                const match = line.match(/(\S+)\s+(\d{2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2})/);
+                if (!match) return;
+        
                 const [_, filename, datetime] = match;
                 const [dateStr, timeStr] = datetime.split(' ');
                 const [day, monthStr, year] = dateStr.split('-');
-                const monthMap = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
                 const [hour, minute] = timeStr.split(':').map(Number);
+        
                 const utcDate = new Date(Date.UTC(+year, monthMap[monthStr], +day, hour, minute));
                 const options = {
                     timeZone: 'America/Los_Angeles',
@@ -50,10 +55,15 @@ function init () {
                     month: 'short',
                     day: '2-digit',
                 };
-                const formatted = new Intl.DateTimeFormat('en-US', options).format(utcDate);
-                return [decodeURIComponent(filename), formatted];
-            })
-            .filter(Boolean);
+                const formattedDate = new Intl.DateTimeFormat('en-US', options).format(utcDate);
+        
+                const decodedName = decodeURIComponent(filename);
+                if (decodedName.match(/\.(mp3|wav)$/i)) {
+                    musicEntries.push([decodedName, formattedDate]);
+                } else {
+                    otherEntries.push([decodedName, formattedDate]);
+                }
+            });
     
         const table = document.getElementById('tracktable').querySelector('tbody');
         const prevBtn = document.getElementById('prev');
@@ -112,23 +122,43 @@ function init () {
                 row.dataset.index = index;
                 if (index === i) row.classList.add('current');
                 row.onclick = () => load(index);
-    
+            
+                const numCell = row.insertCell();
+                numCell.textContent = index + 1; // Dynamic numbering
+            
                 const nameCell = row.insertCell();
                 nameCell.textContent = track.name;
-    
+            
                 const durCell = row.insertCell();
                 durCell.textContent = track.duration;
-    
+            
                 const dateCell = row.insertCell();
                 dateCell.textContent = track.date;
+
+                const downloadCell = row.insertCell();
+                const link = document.createElement('a');
+                link.href = track.url;
+                link.textContent = 'Download';
+                downloadCell.appendChild(link);
             });
         }
     
-        for (const [file, date] of entries) {
+        for (const [file, date] of musicEntries) {
             const url = base + decodeURIComponent(file);
             const name = decodeURIComponent(file);
             playlist.push({ name, url, date: date || '', duration: '…' });
         }
+
+        const otherDiv = document.getElementById('otherFiles');
+        if (otherEntries.length == 0) {
+            otherDiv.style.display = 'none';
+        }
+        otherEntries.forEach(([file, date]) => {
+            const link = document.createElement('a');
+            link.href = base + encodeURIComponent(file);
+            link.textContent = `${file} (${date})`;
+            otherDiv.appendChild(link);
+        });
     
         playlist.forEach((track, index) => {
             const row = table.insertRow();
