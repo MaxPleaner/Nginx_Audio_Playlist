@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Playlist</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <a style="color: white" href="../">Back</a>
+    <h2 id="nowplaying">Now Playing:</h2>
+    <audio id="player" controls></audio>
+    <button id="toggleAnalyzerBtn">Pause / ResumeAnalyzer</button>
+
+    <div class="controls">
+        <button id="prev">⏮ Prev</button>
+        <button id="next">Next ⏭</button>
+    </div>
+    <p id="totalDuration" style="margin-bottom: 1em;">Total Duration: …</p>
+
+    <div id="analysis" style="margin-top: 3em;">
+        <h3>Track Analysis</h3>
+        <canvas id="analysisCanvas" width="800" height="400" style="background:#000;"></canvas>
+    </div>
+
+    <table id="tracktable">
+        <thead>
+            <tr>
+                <th class="sortable" data-sort="name">Track Name</th>
+                <th>Duration</th>
+                <th class="sortable" data-sort="date">Last Modified</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script src="./analyzeTrack.js"></script>
+    <script src="./main.js"></script>
+    <script>
+        (function(){
+            init()
+        })()
+    </script>
+</body>
+</html>
