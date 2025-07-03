@@ -170,7 +170,7 @@ function init () {
         nextBtn.onclick = () => load((i + 1) % playlist.length);
         player.onended = () => load((i + 1) % playlist.length);
     
-        sortBy._dir = 'desc';
+        sortBy._dir = 'asc';
         sortBy('date');
         if (playlist.length) load(0);
     }
