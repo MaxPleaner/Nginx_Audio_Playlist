@@ -17,9 +17,16 @@ this thing was vibe coded in cursor. I take no responsibility for any code quali
 ## Filesystem setup
 
 1. Make a parent folder somewhere containing all your playlists (`/path/to/shared_music`)
-2. Make a new folder for your first playlist, (`/path/to/shared_music/playlist1`)
-3. Make a new folder in there for tracks (and add mp3 or wav files in there) (`/path/to/shared_music/playlist1/tracks`)
-4. Copy `index.html` and `analyzeTrack.js` into your playlist folder (`/path/to/shared_music/playlist1/index.html` and `/path/to/shared_music/playlist1/analyzeTrack.js`)
+2. Make a new folder for your first playlist, (`/path/to/shared_music/playlist1`), I'll refer to this as `<playlist folder>`
+3. Make a new folder in there for tracks (and add mp3 or wav files in there) (`<playlist folder>/tracks`)
+4. Clone the contents of this repo into `<playlist folder>` using
+   ```
+   git clone git@github.com:MaxPleaner/Nginx_Audio_Playlist.git . --depth=1
+   ```
+ 5. Your playlist folder should now look like this:
+  
+![image](https://github.com/user-attachments/assets/fddce712-7e75-4b38-bf28-e8deceeff981)
+
 
 ## Nginx setup (example)
 
