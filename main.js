@@ -77,21 +77,20 @@ function init () {
             });
         });
     
-        async function getDuration(url) {
+        async function getDuration(url, index) {
             return new Promise((resolve) => {
                 const a = new Audio();
                 a.src = url;
                 a.addEventListener('loadedmetadata', () => {
                     const dur = a.duration;
-                    totalSeconds += dur;
-                    const minutes = Math.floor(dur / 60);
-                    const seconds = Math.floor(dur % 60).toString().padStart(2, '0');
-                    updateTotalDurationDisplay();
-                    resolve(`${minutes}:${seconds}`);
+                    const track = playlist.find(t => t.url === url);
+                    if (track) track.duration = dur;
+                    resolve(dur);
                 });
-                a.onerror = () => resolve('—');
+                a.onerror = () => resolve(null);
             });
         }
+        
     
         function updateTotalDurationDisplay() {
             const mins = Math.floor(totalSeconds / 60);
@@ -108,10 +107,22 @@ function init () {
             if (th) th.classList.add(`sorted-${dir}`);
     
             playlist.sort((a, b) => {
-                const av = key === 'date' ? new Date(a[key]) : a[key].toLowerCase();
-                const bv = key === 'date' ? new Date(b[key]) : b[key].toLowerCase();
+                let av, bv;
+            
+                if (key === 'date') {
+                    av = new Date(a[key]);
+                    bv = new Date(b[key]);
+                } else if (key === 'duration') {
+                    av = a[key];
+                    bv = b[key];
+                } else {
+                    av = a[key].toLowerCase();
+                    bv = b[key].toLowerCase();
+                }
+            
                 return dir === 'asc' ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
             });
+            
     
             renderTable();
         }
@@ -131,7 +142,9 @@ function init () {
                 nameCell.textContent = track.name;
             
                 const durCell = row.insertCell();
-                durCell.textContent = track.duration;
+                durCell.textContent = track.duration
+                ? `${Math.floor(track.duration / 60)}:${String(Math.floor(track.duration % 60)).padStart(2, '0')}`
+                : '—';
             
                 const dateCell = row.insertCell();
                 dateCell.textContent = track.date;
@@ -176,11 +189,12 @@ function init () {
             dateCell.textContent = track.date;
     
             row.onclick = () => load(index);
-    
-            getDuration(track.url).then(dur => {
-                durCell.textContent = dur;
-                playlist[index].duration = dur;
-            });
+        });
+
+        Promise.all(
+            playlist.map((track, index) => getDuration(track.url, index))
+        ).then(() => {
+            renderTable(); // ✅ draw with correct durations
         });
     
         function load(index) {
