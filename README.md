@@ -21,7 +21,9 @@ this thing was vibe coded in cursor. I take no responsibility for any code quali
 3. Make a new folder in there for tracks (and add mp3 or wav files in there) (`<playlist folder>/tracks`)
 4. Clone the contents of this repo into `<playlist folder>` using
    ```
-   git clone git@github.com:MaxPleaner/Nginx_Audio_Playlist.git . --depth=1
+   git init
+   git remote add origin git@github.com:MaxPleaner/Nginx_Audio_Playlist.git
+   git pull origin master --allow-unrelated-histories
    ```
  5. Your playlist folder should now look like this:
   
