@@ -89,12 +89,12 @@ function init () {
                 });
                 a.onerror = () => resolve(null);
             });
-        }
-        
+        }        
     
         function updateTotalDurationDisplay() {
-            const mins = Math.floor(totalSeconds / 60);
-            const secs = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
+            const total = playlist.reduce((sum, track) => sum + (track.duration || 0), 0);
+            const mins = Math.floor(total / 60);
+            const secs = Math.floor(total % 60).toString().padStart(2, '0');
             totalDisplay.textContent = `Total Duration: ${mins}:${secs}`;
         }
     
@@ -195,6 +195,7 @@ function init () {
             playlist.map((track, index) => getDuration(track.url, index))
         ).then(() => {
             renderTable(); // ✅ draw with correct durations
+            updateTotalDurationDisplay(); // ✅ totals now correct
         });
     
         function load(index) {
