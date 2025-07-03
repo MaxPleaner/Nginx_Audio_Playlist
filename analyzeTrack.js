@@ -2,7 +2,7 @@ let globalAudioContext = null;
 let globalAnalyser = null;
 let globalAnimationFrame = null;
 let sourceNode = null;
-let analyzerPaused = false;
+let analyzerPaused = true;
 let ctx = null;
 let width = null;
 let height = null;
@@ -64,6 +64,7 @@ function drawVolumePlot() {
 }
 
 function drawLive() {
+    console.log("analyzerPaused", analyzerPaused)
     if (analyzerPaused) return; // skip drawing
     drawWaveform();
     drawVolumePlot();
@@ -93,6 +94,15 @@ function drawLive() {
 
 function toggleAnalyzer() {
     analyzerPaused = !analyzerPaused;
+    const analyzerBtn = document.getElementById('toggleAnalyzerBtn')
+    const analysis = document.getElementById("analysisCanvas")
+    if (analyzerPaused) {
+        analyzerBtn.textContent = "Start Analyzer";
+        analysis.style.display = "none";
+    } else {
+        analyzerBtn.textContent = "Pause Analyzer";
+        analysis.style.display = "block";
+    }
     if (!analyzerPaused) drawLive();
 }
 
@@ -145,7 +155,8 @@ function analyzeTrack(player) {
             if (globalAnimationFrame) {
                 cancelAnimationFrame(globalAnimationFrame);
             }
-            drawLive();
+            if (!analyzerPaused) drawLive();
+            // drawLive()
         })
         .catch(err => console.warn('Error decoding audio buffer for analysis:', err));
 }

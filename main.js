@@ -1,3 +1,4 @@
+
 function init () {
     let totalSeconds = 0;
     const totalDisplay = document.getElementById('totalDuration');
@@ -137,6 +138,7 @@ function init () {
 
                 const downloadCell = row.insertCell();
                 const link = document.createElement('a');
+                link.style.color = 'lightgreen';
                 link.href = track.url;
                 link.textContent = 'Download';
                 downloadCell.appendChild(link);
@@ -206,4 +208,14 @@ function init () {
     }
     
     getPlaylist();    
+
+    // Get folder name from URL
+    const folder = decodeURIComponent(location.pathname.split('/').filter(Boolean).pop());
+
+    // Set page title
+    document.title = folder;
+
+    // Optionally update visible heading too
+    const heading = document.getElementById('nowplaying');
+    if (heading) heading.textContent = folder;
 }
