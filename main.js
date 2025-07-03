@@ -171,6 +171,7 @@ function init () {
         otherEntries.forEach(([file, date]) => {
             const link = document.createElement('a');
             link.href = base + encodeURIComponent(file);
+            link.style.color = 'lightgreen';
             link.textContent = `${file} (${date})`;
             otherDiv.appendChild(link);
         });
