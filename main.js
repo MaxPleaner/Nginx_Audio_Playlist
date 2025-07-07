@@ -201,7 +201,7 @@ function init () {
     
         function load(index) {
             i = index;
-            player.src = playlist[i].url;
+            player.src = `${playlist[i].url}?v=${Date.now()}`;
             player.play().catch(err => console.warn('Playback failed:', err));
             nowplaying.textContent = 'Now Playing: ' + playlist[i].name;
             updateUI();
@@ -218,8 +218,8 @@ function init () {
         nextBtn.onclick = () => load((i + 1) % playlist.length);
         player.onended = () => load((i + 1) % playlist.length);
     
-        sortBy._dir = 'asc';
-        sortBy('date');
+        sortBy._dir = 'desc';
+        sortBy('name');
         if (playlist.length) load(0);
     }
     
