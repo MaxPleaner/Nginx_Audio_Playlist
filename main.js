@@ -16,8 +16,51 @@ function init () {
     const player = document.getElementById('player');
     
     let playlist = [];
+    let customOrder = []; // Store custom order indices
     
     let firstPlayHandled = false;
+    
+    // Drag and drop variables
+    let draggedElement = null;
+    let draggedIndex = null;
+    
+    // Load custom order from localStorage
+    function loadCustomOrder() {
+        const saved = localStorage.getItem('playlistOrder');
+        if (saved) {
+            try {
+                customOrder = JSON.parse(saved);
+            } catch (e) {
+                console.warn('Failed to parse saved playlist order:', e);
+                customOrder = [];
+            }
+        }
+    }
+    
+    // Save custom order to localStorage
+    function saveCustomOrder() {
+        localStorage.setItem('playlistOrder', JSON.stringify(customOrder));
+    }
+    
+    // Get the actual playlist index from custom order
+    function getPlaylistIndex(displayIndex) {
+        if (customOrder.length > 0 && customOrder[displayIndex] !== undefined) {
+            return customOrder[displayIndex];
+        }
+        return displayIndex;
+    }
+    
+    // Get the display index from playlist index
+    function getDisplayIndex(playlistIndex) {
+        if (customOrder.length > 0) {
+            const displayIndex = customOrder.indexOf(playlistIndex);
+            return displayIndex !== -1 ? displayIndex : playlistIndex;
+        }
+        return playlistIndex;
+    }
+    
+    // Drag and drop event handlers (will be moved inside getPlaylist function)
+    let handleDragStart, handleDragOver, handleDragLeave, handleDrop, handleDragEnd;
 
     document.getElementById('toggleAnalyzerBtn').onclick = toggleAnalyzer;
     
@@ -209,14 +252,30 @@ function init () {
     
         function renderTable() {
             table.innerHTML = '';
-            playlist.forEach((track, index) => {
+            
+            // Determine which tracks to display and in what order
+            const tracksToDisplay = customOrder.length > 0 
+                ? customOrder.map(playlistIndex => ({ track: playlist[playlistIndex], playlistIndex }))
+                : playlist.map((track, index) => ({ track, playlistIndex: index }));
+            
+            tracksToDisplay.forEach(({ track, playlistIndex }, displayIndex) => {
                 const row = table.insertRow();
-                row.dataset.index = index;
-                if (index === i) row.classList.add('current');
-                row.onclick = () => load(index);
+                row.dataset.index = displayIndex;
+                row.dataset.playlistIndex = playlistIndex;
+                
+                // Add drag and drop attributes
+                row.draggable = true;
+                row.addEventListener('dragstart', handleDragStart);
+                row.addEventListener('dragover', handleDragOver);
+                row.addEventListener('dragleave', handleDragLeave);
+                row.addEventListener('drop', handleDrop);
+                row.addEventListener('dragend', handleDragEnd);
+                
+                if (playlistIndex === i) row.classList.add('current');
+                row.onclick = () => load(playlistIndex);
             
                 const numCell = row.insertCell();
-                numCell.textContent = index + 1; // Dynamic numbering
+                numCell.textContent = displayIndex + 1; // Dynamic numbering
             
                 const nameCell = row.insertCell();
                 nameCell.textContent = track.name;
@@ -294,15 +353,144 @@ function init () {
         }
     
         function updateUI() {
-            [...table.rows].forEach((row, idx) => {
-                row.classList.toggle('current', idx === i);
+            [...table.rows].forEach((row) => {
+                const playlistIndex = parseInt(row.dataset.playlistIndex);
+                row.classList.toggle('current', playlistIndex === i);
             });
         }
     
-        prevBtn.onclick = () => load((i - 1 + playlist.length) % playlist.length);
-        nextBtn.onclick = () => load((i + 1) % playlist.length);
-        player.onended = () => load((i + 1) % playlist.length);
+        prevBtn.onclick = () => {
+            const currentDisplayIndex = getDisplayIndex(i);
+            const prevDisplayIndex = (currentDisplayIndex - 1 + playlist.length) % playlist.length;
+            const prevPlaylistIndex = getPlaylistIndex(prevDisplayIndex);
+            load(prevPlaylistIndex);
+        };
+        
+        nextBtn.onclick = () => {
+            const currentDisplayIndex = getDisplayIndex(i);
+            const nextDisplayIndex = (currentDisplayIndex + 1) % playlist.length;
+            const nextPlaylistIndex = getPlaylistIndex(nextDisplayIndex);
+            load(nextPlaylistIndex);
+        };
+        
+        player.onended = () => {
+            const currentDisplayIndex = getDisplayIndex(i);
+            const nextDisplayIndex = (currentDisplayIndex + 1) % playlist.length;
+            const nextPlaylistIndex = getPlaylistIndex(nextDisplayIndex);
+            load(nextPlaylistIndex);
+        };
     
+        // Load custom order from localStorage
+        loadCustomOrder();
+        
+        // Define drag and drop handlers inside getPlaylist where renderTable is accessible
+        handleDragStart = function(e) {
+            draggedElement = e.target.closest('tr');
+            draggedIndex = parseInt(draggedElement.dataset.index);
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', draggedElement.outerHTML);
+            draggedElement.classList.add('dragging');
+        };
+        
+        handleDragOver = function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            const targetRow = e.target.closest('tr');
+            if (targetRow && targetRow !== draggedElement) {
+                const rect = targetRow.getBoundingClientRect();
+                const midpoint = rect.top + rect.height / 2;
+                
+                // Remove existing drop indicators
+                document.querySelectorAll('.drop-above, .drop-below').forEach(el => {
+                    el.classList.remove('drop-above', 'drop-below');
+                });
+                
+                if (e.clientY < midpoint) {
+                    targetRow.classList.add('drop-above');
+                } else {
+                    targetRow.classList.add('drop-below');
+                }
+            }
+        };
+        
+        handleDragLeave = function(e) {
+            const targetRow = e.target.closest('tr');
+            if (targetRow) {
+                targetRow.classList.remove('drop-above', 'drop-below');
+            }
+        };
+        
+        handleDrop = function(e) {
+            e.preventDefault();
+            
+            const targetRow = e.target.closest('tr');
+            if (!targetRow || !draggedElement || draggedIndex === null) return;
+            
+            const targetIndex = parseInt(targetRow.dataset.index);
+            if (draggedIndex === targetIndex) return;
+            
+            const rect = targetRow.getBoundingClientRect();
+            const midpoint = rect.top + rect.height / 2;
+            const dropAbove = e.clientY < midpoint;
+            
+            // Calculate new custom order
+            const draggedPlaylistIndex = getPlaylistIndex(draggedIndex);
+            const targetPlaylistIndex = getPlaylistIndex(targetIndex);
+            
+            // Remove dragged item from custom order
+            const newCustomOrder = customOrder.filter(index => index !== draggedPlaylistIndex);
+            
+            // Find target position in custom order
+            const targetCustomIndex = newCustomOrder.indexOf(targetPlaylistIndex);
+            
+            if (targetCustomIndex !== -1) {
+                // Insert at target position
+                const insertIndex = dropAbove ? targetCustomIndex : targetCustomIndex + 1;
+                newCustomOrder.splice(insertIndex, 0, draggedPlaylistIndex);
+            } else {
+                // Target not in custom order, add to end
+                newCustomOrder.push(draggedPlaylistIndex);
+            }
+            
+            customOrder = newCustomOrder;
+            saveCustomOrder();
+            
+            // Clean up visual indicators
+            document.querySelectorAll('.drop-above, .drop-below, .dragging').forEach(el => {
+                el.classList.remove('drop-above', 'drop-below', 'dragging');
+            });
+            
+            // Re-render table with new order
+            renderTable();
+            
+            // Update current track index if needed
+            const currentPlaylistIndex = getPlaylistIndex(i);
+            i = getDisplayIndex(currentPlaylistIndex);
+            updateUI();
+            
+            draggedElement = null;
+            draggedIndex = null;
+        };
+        
+        handleDragEnd = function(e) {
+            // Clean up visual indicators
+            document.querySelectorAll('.drop-above', '.drop-below', '.dragging').forEach(el => {
+                el.classList.remove('drop-above', 'drop-below', 'dragging');
+            });
+            
+            draggedElement = null;
+            draggedIndex = null;
+        };
+        
+        // Add reset order button functionality
+        document.getElementById('resetOrder').onclick = () => {
+            customOrder = [];
+            localStorage.removeItem('playlistOrder');
+            renderTable();
+            updateUI();
+        };
+        
         sortBy._dir = 'desc';
         sortBy('name');
         if (playlist.length) load(0);

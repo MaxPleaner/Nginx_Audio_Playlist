@@ -40,3 +40,30 @@ button {
     cursor: pointer;
 }
 th.sortable:hover { color: #0ff; cursor: pointer; }
+
+/* Drag and drop styles */
+tr.dragging {
+    opacity: 0.5;
+    background-color: #444 !important;
+}
+
+tr.drop-above {
+    border-top: 3px solid #0ff;
+}
+
+tr.drop-below {
+    border-bottom: 3px solid #0ff;
+}
+
+tr {
+    cursor: grab;
+}
+
+tr:active {
+    cursor: grabbing;
+}
+
+/* Disable text selection during drag */
+tr.dragging * {
+    user-select: none;
+}
