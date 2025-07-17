@@ -29,6 +29,11 @@ this thing was vibe coded in cursor. I take no responsibility for any code quali
   
 ![image](https://github.com/user-attachments/assets/fddce712-7e75-4b38-bf28-e8deceeff981)
 
+**Note**: you can include non-music files in `tracks/`. They will show up on the site as static download links. 
+
+![image](https://github.com/user-attachments/assets/526f88d9-4485-49f5-8c3b-9314af01948e)
+
+
 
 ## Nginx setup (example)
 
