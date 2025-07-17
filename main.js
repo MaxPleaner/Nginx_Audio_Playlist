@@ -1,5 +1,16 @@
 
 function init () {
+    // Register service worker for PWA functionality
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+            .then(registration => {
+                console.log('Service Worker registered successfully:', registration);
+            })
+            .catch(error => {
+                console.log('Service Worker registration failed:', error);
+            });
+    }
+    
     let totalSeconds = 0;
     const totalDisplay = document.getElementById('totalDuration');
     const player = document.getElementById('player');
@@ -18,6 +29,75 @@ function init () {
             if (currentRow) currentRow.click();
         }
     }, { once: true });
+    
+    // Add mobile-specific audio handling
+    player.addEventListener('pause', () => {
+        // On mobile, check if pause was due to AudioContext suspension
+        if (window.globalAudioContext && window.globalAudioContext.state === 'suspended') {
+            console.log('Audio paused due to AudioContext suspension');
+        }
+    });
+    
+    // Handle audio resumption when page becomes visible
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && player.paused && window.globalAudioContext) {
+            // Try to resume audio if it was paused due to suspension
+            if (window.globalAudioContext.state === 'running') {
+                player.play().catch(err => console.warn('Failed to resume audio:', err));
+            }
+        }
+    });
+    
+    // Enhanced audio session handling for background playback
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.setActionHandler('play', () => {
+            player.play();
+        });
+        
+        navigator.mediaSession.setActionHandler('pause', () => {
+            player.pause();
+        });
+        
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+            if (playlist.length > 0) {
+                load((i - 1 + playlist.length) % playlist.length);
+            }
+        });
+        
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+            if (playlist.length > 0) {
+                load((i + 1) % playlist.length);
+            }
+        });
+        
+        // Update media session metadata when track changes
+        function updateMediaSession() {
+            if (playlist.length > 0 && playlist[i]) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: playlist[i].name,
+                    artist: 'Audio Player',
+                    album: 'Playlist',
+                    artwork: [
+                        {
+                            src: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9IiMwMDAwMDAiLz4KPHBhdGggZD0iTTk2IDQ4QzY5LjQ5IDQ4IDQ4IDY5LjQ5IDQ4IDk2czIxLjQ5IDQ4IDQ4IDQ4IDQ4LTQ4IDQ4LTQ4LTIxLjQ5LTQ4LTQ4LTQ4em0wIDY0Yy04LjgzIDAtMTYtNy4xNy0xNi0xNnM3LjE3LTE2IDE2LTE2IDE2IDcuMTcgMTYgMTYtNy4xNyAxNi0xNiAxNnoiIGZpbGw9IiNmZmZmZmYiLz4KPHBhdGggZD0iTTk2IDEyOGMtMTcuNjcgMC0zMiAxNC4zMy0zMiAzMnMxNC4zMyAzMiAzMiAzMiAzMi0xNC4zMyAzMi0zMi0xNC4zMy0zMi0zMi0zMnoiIGZpbGw9IiNmZmZmZmYiLz4KPC9zdmc+Cg==',
+                            sizes: '192x192',
+                            type: 'image/svg+xml'
+                        }
+                    ]
+                });
+            }
+        }
+        
+        // Update playback state
+        function updatePlaybackState() {
+            navigator.mediaSession.playbackState = player.paused ? 'paused' : 'playing';
+        }
+        
+        // Add event listeners for media session updates
+        player.addEventListener('play', updatePlaybackState);
+        player.addEventListener('pause', updatePlaybackState);
+        player.addEventListener('ended', updatePlaybackState);
+    }
     
     let i = 0;
     
@@ -206,6 +286,11 @@ function init () {
             nowplaying.textContent = 'Now Playing: ' + playlist[i].name;
             updateUI();
             analyzeTrack(player); // Refresh analyzer on track change
+            
+            // Update media session metadata
+            if (typeof updateMediaSession === 'function') {
+                updateMediaSession();
+            }
         }
     
         function updateUI() {

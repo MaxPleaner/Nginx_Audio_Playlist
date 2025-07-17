@@ -10,6 +10,44 @@ let samples = null;
 let duration = null;
 let dbValues = null;
 
+// Add function to handle AudioContext resumption
+function resumeAudioContext() {
+    if (globalAudioContext && globalAudioContext.state === 'suspended') {
+        globalAudioContext.resume().then(() => {
+            console.log('AudioContext resumed successfully');
+        }).catch(err => {
+            console.warn('Failed to resume AudioContext:', err);
+        });
+    }
+}
+
+// Add function to handle page visibility changes
+function handleVisibilityChange() {
+    if (!document.hidden) {
+        // Page became visible again, resume AudioContext
+        resumeAudioContext();
+    }
+}
+
+// Add function to handle AudioContext state changes
+function handleAudioContextStateChange() {
+    if (globalAudioContext) {
+        console.log('AudioContext state changed to:', globalAudioContext.state);
+        if (globalAudioContext.state === 'suspended') {
+            // Try to resume if suspended
+            resumeAudioContext();
+        }
+    }
+}
+
+// Add function to handle user interactions (needed for some mobile browsers)
+function handleUserInteraction() {
+    resumeAudioContext();
+    // Remove the listener after first interaction
+    document.removeEventListener('touchstart', handleUserInteraction);
+    document.removeEventListener('click', handleUserInteraction);
+}
+
 function drawWaveform() {
     ctx.clearRect(0, 0, width, height);
     ctx.strokeStyle = '#0cf';
@@ -117,7 +155,29 @@ function analyzeTrack(player) {
         sourceNode.connect(globalAnalyser);
         globalAnalyser.connect(globalAudioContext.destination);
 
-        console.log('AudioContext and Analyser initialized');
+        // Set up event listeners for mobile audio handling
+        globalAudioContext.addEventListener('statechange', handleAudioContextStateChange);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        // Also listen for focus events as a fallback
+        window.addEventListener('focus', resumeAudioContext);
+        
+        // Add user interaction listeners for mobile browsers that require user gesture
+        document.addEventListener('touchstart', handleUserInteraction);
+        document.addEventListener('click', handleUserInteraction);
+        
+        // Make AudioContext globally accessible for main.js
+        window.globalAudioContext = globalAudioContext;
+        
+        // Set up periodic check for suspended AudioContext (every 5 seconds)
+        setInterval(() => {
+            if (globalAudioContext && globalAudioContext.state === 'suspended') {
+                console.log('Periodic check: AudioContext is suspended, attempting to resume');
+                resumeAudioContext();
+            }
+        }, 5000);
+        
+        console.log('AudioContext and Analyser initialized with mobile audio handling');
     }
 
     // If suspended (e.g., first user gesture), resume context
