@@ -24,9 +24,15 @@ function init () {
     let draggedElement = null;
     let draggedIndex = null;
     
+    // Generate storage key based on current URL
+    function getStorageKey() {
+        return `playlistOrder_${window.location.href}`;
+    }
+    
     // Load custom order from localStorage
     function loadCustomOrder() {
-        const saved = localStorage.getItem('playlistOrder');
+        const storageKey = getStorageKey();
+        const saved = localStorage.getItem(storageKey);
         if (saved) {
             try {
                 customOrder = JSON.parse(saved);
@@ -39,7 +45,8 @@ function init () {
     
     // Save custom order to localStorage
     function saveCustomOrder() {
-        localStorage.setItem('playlistOrder', JSON.stringify(customOrder));
+        const storageKey = getStorageKey();
+        localStorage.setItem(storageKey, JSON.stringify(customOrder));
     }
     
     // Get the actual playlist index from custom order
@@ -486,7 +493,8 @@ function init () {
         // Add reset order button functionality
         document.getElementById('resetOrder').onclick = () => {
             customOrder = [];
-            localStorage.removeItem('playlistOrder');
+            const storageKey = getStorageKey();
+            localStorage.removeItem(storageKey);
             renderTable();
             updateUI();
         };
